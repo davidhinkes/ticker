@@ -1,0 +1,12 @@
+name: ticket
+version: 0.0.0
+license: MIT
+author: David Hinkes
+build-type: Simple
+cabal-version: >= 1.2
+
+executable ticker
+  main-is: main.hs
+  hs-source-dirs: src
+  build-depends: base >= 4, random, containers
+  ghc-options: -O2 -Wall
