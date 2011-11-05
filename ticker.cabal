@@ -8,5 +8,5 @@ cabal-version: >= 1.2
 executable ticker
   main-is: main.hs
   hs-source-dirs: src
-  build-depends: base >= 4, random, containers
+  build-depends: base >= 4, random, containers, mtl
   ghc-options: -O2 -Wall

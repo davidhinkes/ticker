@@ -10,7 +10,7 @@ main = do
   let hs = mkHinkesInvestors
   --let bs = mkBallancedInvestors (mkStdGen 9)
   let ballance = Ballance 1000.0 100
-  let market = mkMarket (take 1000 rs ++ take 0 hs) ballance
+  let market = mkMarket (take 10 hs ++ take 100 rs) ballance
   let ticker = Ticker Nothing Nothing 10 0
   
   --putStrLn "Ticker.  David Hinkes. 2011."

@@ -3,9 +3,9 @@
 
 module Ticker where
 
+--import Control.Monad.State
 import Data.List
-import Data.Map
-import System.Random
+import Data.Map 
 
 data Ballance = Ballance {
   dollars :: Float,
@@ -30,8 +30,15 @@ data Order = Limit {
   price :: Price
 } deriving Show
 
+{--
 data Investor = Investor {
   invest :: Ballance -> Ticker -> [Order] -> (Investor, [Order])
+}
+--}
+
+data Investor = Investor {
+  invest :: Ballance -> Ticker -> [Order] -> [Order],
+  next :: Investor
 }
 
 type Market = Map InvestorID (Investor, Ballance, [Order])
@@ -54,7 +61,10 @@ validateOrders ballance orders = validateOrders' ballance orders 0.0 0 where
     else validateOrders' b os dollarsCommitted sharesCommitted
   validateOrders' _ [] _ _ = []
 
-data AuctionEntry = AuctionEntry { investorID :: InvestorID, order :: Order }
+data AuctionEntry = AuctionEntry {
+  investorID :: InvestorID,
+  order :: Order
+}
 
 auctionEntryPrice :: AuctionEntry -> Price
 auctionEntryPrice (AuctionEntry _ o) = price o
@@ -62,6 +72,7 @@ auctionEntryPrice (AuctionEntry _ o) = price o
 instance Eq AuctionEntry where
   a == b = auctionEntryPrice a == auctionEntryPrice b
 
+-- AuctionEntry needs to be in Ord so the auction can arrange by price.
 instance Ord AuctionEntry where
   compare a b = compare (auctionEntryPrice a) (auctionEntryPrice b)
 
@@ -72,7 +83,8 @@ mkAuctionEntries _ [] = []
 updateMarketOrders :: Ticker -> Market -> Market
 updateMarketOrders ticker m = Data.Map.map f m where
   f :: (Investor, Ballance, [Order]) -> (Investor, Ballance, [Order])
-  f (i, b, os) = let (i', os') = invest i b ticker os
+  f (i, b, os) = let os' = invest i b ticker os
+                     i' = next i
                  in (i', b, validateOrders b os')
 
 extractAuctionEntries :: Market -> [AuctionEntry]

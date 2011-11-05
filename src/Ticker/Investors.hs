@@ -9,29 +9,31 @@ import Ticker
 
 -- Buy a little bit every day @ fixed price.
 mkHinkesInvestor :: Investor
-mkHinkesInvestor = Investor i where
-  i _ _ _ = (mkHinkesInvestor, take 100 $ repeat $ Limit Buy 11.0)
+mkHinkesInvestor = Investor i n where
+  i _ _ _ = take 100 $ repeat $ Limit Buy 11.0
+  n = mkHinkesInvestor
 
 mkHinkesInvestors :: [Investor]
 mkHinkesInvestors = mkHinkesInvestor : mkHinkesInvestors
 
 -- RandomInvestor.  Randomly buy or sell at any given time.
 mkRandomInvestor :: RandomGen g => g -> Float -> Investor
-mkRandomInvestor g f = Investor invest' where
+mkRandomInvestor g f = Investor invest' newInvestor where
+  (randomNumber, g') = randomR (0.0, 1.0) g
+  (priceScale, g'') = randomR (-0.01, 0.03) g'
   invest' _ (Ticker _ _ lastPrice _) [] =
-    let (randomNumber, g') = randomR (0.0, 1.0) g
-        (priceScale, g'') = randomR (-0.01, 0.03) g'
-        i' = mkRandomInvestor g'' f
-    in case randomNumber of
-      x | x > (1.0 - f) -> (i', [Limit Buy (lastPrice*(1.0-priceScale))])
-      x | x < f -> (i', [Limit Sell (lastPrice*(1.0+priceScale))])
-      _         -> (i', [])
+    case randomNumber of
+      x | x > (1.0 - f) -> [Limit Buy (lastPrice*(1.0-priceScale))]
+      x | x < f -> [Limit Sell (lastPrice*(1.0+priceScale))]
+      _         -> []
   -- If there are already outstanding orders, don't do anything.
-  invest' _ _ orders = (mkRandomInvestor g f, orders)
+  invest' _ _ orders = orders
+  newInvestor = mkRandomInvestor g'' f
 
 mkRandomInvestors :: RandomGen g => g -> Float -> [Investor]
 mkRandomInvestors g f = let (g1, g2) = System.Random.split g
                         in mkRandomInvestor g1 f : mkRandomInvestors g2 f
+
 {--
 mkBallancedInvestor :: RandomGen g => g -> Float -> Float -> Investor
 mkBallancedInvestor g activityRatio assetRatio = Investor invest where
