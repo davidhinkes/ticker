@@ -10,8 +10,8 @@ import Ticker
 -- Buy a little bit every day @ fixed price.
 mkHinkesInvestor :: Investor
 mkHinkesInvestor = Investor i n where
-  i _ _ _ = take 100 $ repeat $ Limit Buy 11.0
-  n = mkHinkesInvestor
+  i _ t _ = (take 100 $ repeat $ Limit Buy 9.9) ++ (take 100 $ repeat $ Limit Sell 10.1)
+  n _ _ _ = mkHinkesInvestor
 
 mkHinkesInvestors :: [Investor]
 mkHinkesInvestors = mkHinkesInvestor : mkHinkesInvestors
@@ -20,15 +20,17 @@ mkHinkesInvestors = mkHinkesInvestor : mkHinkesInvestors
 mkRandomInvestor :: RandomGen g => g -> Float -> Investor
 mkRandomInvestor g f = Investor invest' newInvestor where
   (randomNumber, g') = randomR (0.0, 1.0) g
-  (priceScale, g'') = randomR (-0.01, 0.03) g'
+  (priceScale, g'') = randomR (-0.03, 0.03) g'
+  -- p = lastPrice
+  p = 10
   invest' _ (Ticker _ _ lastPrice _) [] =
     case randomNumber of
-      x | x > (1.0 - f) -> [Limit Buy (lastPrice*(1.0-priceScale))]
-      x | x < f -> [Limit Sell (lastPrice*(1.0+priceScale))]
+      x | x > (1.0 - f) -> [Limit Buy (p*(1.0-priceScale))]
+      x | x < f -> [Limit Sell (p*(1.0+priceScale))]
       _         -> []
   -- If there are already outstanding orders, don't do anything.
   invest' _ _ orders = orders
-  newInvestor = mkRandomInvestor g'' f
+  newInvestor _ _ _ = mkRandomInvestor g'' f
 
 mkRandomInvestors :: RandomGen g => g -> Float -> [Investor]
 mkRandomInvestors g f = let (g1, g2) = System.Random.split g

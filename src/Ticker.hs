@@ -3,7 +3,6 @@
 
 module Ticker where
 
---import Control.Monad.State
 import Data.List
 import Data.Map 
 
@@ -30,15 +29,9 @@ data Order = Limit {
   price :: Price
 } deriving Show
 
-{--
-data Investor = Investor {
-  invest :: Ballance -> Ticker -> [Order] -> (Investor, [Order])
-}
---}
-
 data Investor = Investor {
   invest :: Ballance -> Ticker -> [Order] -> [Order],
-  next :: Investor
+  next :: Ballance -> Ticker -> [Order] -> Investor
 }
 
 type Market = Map InvestorID (Investor, Ballance, [Order])
@@ -84,7 +77,7 @@ updateMarketOrders :: Ticker -> Market -> Market
 updateMarketOrders ticker m = Data.Map.map f m where
   f :: (Investor, Ballance, [Order]) -> (Investor, Ballance, [Order])
   f (i, b, os) = let os' = invest i b ticker os
-                     i' = next i
+                     i' = next i b ticker os
                  in (i', b, validateOrders b os')
 
 extractAuctionEntries :: Market -> [AuctionEntry]
