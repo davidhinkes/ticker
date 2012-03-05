@@ -1,10 +1,12 @@
+{-# LANGUAGE ExistentialQuantification #-}
 -- David Hinkes.  2011.
 -- Ticker framework for market simulation.
 
 module Ticker where
 
+import Control.Monad.State
 import Data.List
-import Data.Map 
+import Data.Map
 
 data Ballance = Ballance {
   dollars :: Float,
@@ -29,9 +31,9 @@ data Order = Limit {
   price :: Price
 } deriving Show
 
-data Investor = Investor {
-  invest :: Ballance -> Ticker -> [Order] -> [Order],
-  next :: Ballance -> Ticker -> [Order] -> Investor
+data Investor = forall s . Investor {
+  invest :: Ballance -> Ticker -> [Order] -> State s [Order],
+  investorState :: s
 }
 
 type Market = Map InvestorID (Investor, Ballance, [Order])
@@ -76,12 +78,14 @@ mkAuctionEntries _ [] = []
 updateMarketOrders :: Ticker -> Market -> Market
 updateMarketOrders ticker m = Data.Map.map f m where
   f :: (Investor, Ballance, [Order]) -> (Investor, Ballance, [Order])
-  f (i, b, os) = let os' = invest i b ticker os
-                     i' = next i b ticker os
-                 in (i', b, validateOrders b os')
+  f ((Investor investF investS), b, os) =
+    let s = investF b ticker os
+        (os', is') = runState s investS
+        i' = Investor investF is'
+    in (i', b, validateOrders b os')
 
 extractAuctionEntries :: Market -> [AuctionEntry]
-extractAuctionEntries m = foldWithKey f [] m where
+extractAuctionEntries m = foldrWithKey f [] m where
   f iid (_, _, os) entries = entries ++ (mkAuctionEntries iid os)
 
 runAuction :: Ticker -> [AuctionEntry] -> [AuctionEntry] -> (Ticker, [AuctionEntry], [AuctionEntry])

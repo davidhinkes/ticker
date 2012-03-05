@@ -18,7 +18,7 @@ import System.Random
 mkInvestors =
   let rs = mkRandomInvestors (mkStdGen 3) (1.0/10.0)
       hs = mkHinkesInvestors 
-  in (take 100 hs) ++ (take 10 rs)
+  in (take 0 hs) ++ (take 10 rs)
 
 staticFileHandler fileName = ResponseFile status200
                                           [ (CI.mk . B.pack $ "Content-Type", B.pack "text/html") ]
@@ -37,8 +37,6 @@ webapp request = return $ case pathInfo request of
 main :: IO ()
 main = do
   let ballance = Ballance 1000.0 100
-  --let market = mkMarket mkInvestors ballance
-  --let ticker = Ticker Nothing Nothing 10 0
   let port = 8080
   Network.Wai.Handler.Warp.run port webapp
 
