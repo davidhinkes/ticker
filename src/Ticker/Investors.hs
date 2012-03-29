@@ -7,10 +7,10 @@ import Control.Monad.State
 import System.Random
 import Ticker
 
--- Buy a little bit every day @ fixed price.
+-- Buy and sell a little bit every day @ fixed price.
 mkHinkesInvestor :: Investor
 mkHinkesInvestor = Investor i () where
-  i _ _ _ = return $ (take 100 $ repeat $ Limit Buy 9.9) ++ (take 100 $ repeat $ Limit Sell 10.1)
+  i _ _ _ = return $ (take 100 $ repeat $ Limit Buy 9.0) ++ (take 100 $ repeat $ Limit Sell 11.0)
 
 mkHinkesInvestors :: [Investor]
 mkHinkesInvestors = mkHinkesInvestor : mkHinkesInvestors

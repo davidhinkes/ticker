@@ -117,28 +117,40 @@ updateMarketBallance m ticker (ae:aes) = updateMarketBallance (adjust (f $ order
   f (Limit Sell p) (i, (Ballance d s), orders) = (i, Ballance (d + p) (s-1), orders)
 updateMarketBallance market _ [] = market
 
-runOnce :: Ticker -> Market -> (Ticker, Market)
-runOnce ticker market = let market' = updateMarketOrders ticker market
-                            auctionEntries = extractAuctionEntries market'
-                            buyFilter (AuctionEntry _ (Limit Buy _)) = True
-                            buyFilter _ = False
-                            sellFilter = not . buyFilter
-                            buys = Prelude.filter buyFilter auctionEntries
-                            sells = Prelude.filter sellFilter auctionEntries
-                            (ticker', pairs, leftovers) = runAuction ticker buys sells
-                            market'' = updateMarketBallance market' ticker' pairs
-                            market''' = cleanMarketOrders market''
-                            market'''' = updateMarketLeftOver market''' leftovers
-                        in (ticker', market'''')
+runOnce :: State (Ticker, Market) Ticker
+runOnce = do
+  (ticker, market) <- get
+  let market' = updateMarketOrders ticker market
+  let auctionEntries = extractAuctionEntries market'
+  let buys = Prelude.filter buyFilter auctionEntries
+  let sells = Prelude.filter sellFilter auctionEntries
+  let (ticker', pairs, leftovers) = runAuction ticker buys sells
+  let market'' = updateMarketBallance market' ticker' pairs
+  let market''' = cleanMarketOrders market''
+  let market'''' = updateMarketLeftOver market''' leftovers
+  put (ticker', market'''')
+  return ticker'
+    where buyFilter (AuctionEntry _ (Limit Buy _)) = True
+          buyFilter _ = False
+          sellFilter = not . buyFilter
 
-runMany :: Ticker -> Market -> [(Ticker, Market)]
-runMany t m = let (t', m') = runOnce t m in (t', m'):runMany t' m'
+runMany :: Int -> State (Ticker, Market) [Ticker]
+runMany 0 = return []
+runMany i = do
+  t' <- runOnce
+  ts <- runMany (i-1)
+  return $ t' : ts
 
-runDay :: Ticker -> Market -> [(Ticker, Market)]
-runDay t m = take 100 $ runMany t $ cleanMarketOrders m
+runDay :: Int -> State (Ticker, Market) [Ticker]
+runDay ticksPerDay = do
+  ts <- runMany ticksPerDay
+  (t, market) <- get
+  put (t, cleanMarketOrders market)
+  return ts
 
-runDays :: Ticker -> Market -> [(Ticker, Market)]
-runDays t m = let xs = take 25 $ runMany t m
-                  (t',m') = Data.List.last xs
-                  m'' =  cleanMarketOrders m'
-                  in xs ++ runDays t' m''
+runDays :: Int ->  Int -> State (Ticker, Market) [[Ticker]]
+runDays 0 _ = return [[]]
+runDays i ticksPerDay = do
+  ts <- runDay ticksPerDay
+  tss <- runDays (i-1) ticksPerDay
+  return $ ts : tss
